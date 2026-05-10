@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String            @id @default(cuid())
+  name             String?
+  email            String            @unique
+  passwordHash     String
+  createdAt        DateTime          @default(now())
+
+  foods            Food[]
+  foodPurchases    FoodPurchase[]
+  meals            Meal[]
+  workouts         Workout[]
+  measurements     BodyMeasurement[]
+}
+
+model Food {
+  id               String            @id @default(cuid())
+  userId           String
+  name             String
+  category         FoodCategory?
+  unit             String
+  createdAt        DateTime          @default(now())
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealItems        MealItem[]
+  purchases        FoodPurchase[]
+
+  @@index([userId])
+}
+
+model FoodPurchase {
+  id               String            @id @default(cuid())
+  userId           String
+  foodId           String
+  quantity         Decimal           @db.Decimal(10, 2)
+  unitPrice        Decimal           @db.Decimal(10, 2)
+  purchaseDate     DateTime
+  expirationDate   DateTime?
+  notes            String?
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  food             Food              @relation(fields: [foodId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purchaseDate])
+  @@index([foodId])
+}
+
+model Meal {
+  id               String            @id @default(cuid())
+  userId           String
+  mealType         MealType
+  consumedAt       DateTime
+  notes            String?
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items            MealItem[]
+
+  @@index([userId, consumedAt])
+}
+
+model MealItem {
+  id               String            @id @default(cuid())
+  mealId           String
+  foodId           String
+  quantity         Decimal           @db.Decimal(10, 2)
+  calories         Int?
+  proteinG         Decimal?          @db.Decimal(8, 2)
+  carbsG           Decimal?          @db.Decimal(8, 2)
+  fatG             Decimal?          @db.Decimal(8, 2)
+
+  meal             Meal              @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  food             Food              @relation(fields: [foodId], references: [id], onDelete: Cascade)
+
+  @@index([mealId])
+  @@index([foodId])
+}
+
+model Workout {
+  id               String            @id @default(cuid())
+  userId           String
+  workoutType      WorkoutType
+  startedAt        DateTime
+  durationMin      Int?
+  notes            String?
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercises        WorkoutExercise[]
+
+  @@index([userId, startedAt])
+}
+
+model WorkoutExercise {
+  id               String            @id @default(cuid())
+  workoutId        String
+  name             String
+  sets             Int?
+  reps             Int?
+  loadKg           Decimal?          @db.Decimal(8, 2)
+  durationMin      Int?
+
+  workout          Workout           @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+
+  @@index([workoutId])
+}
+
+model BodyMeasurement {
+  id               String            @id @default(cuid())
+  userId           String
+  measuredAt       DateTime
+  weightKg         Decimal?          @db.Decimal(5, 2)
+  bodyFatPct       Decimal?          @db.Decimal(5, 2)
+  chestCm          Decimal?          @db.Decimal(5, 2)
+  waistCm          Decimal?          @db.Decimal(5, 2)
+  hipCm            Decimal?          @db.Decimal(5, 2)
+  armCm            Decimal?          @db.Decimal(5, 2)
+  thighCm          Decimal?          @db.Decimal(5, 2)
+  notes            String?
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, measuredAt])
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+}
+
+enum WorkoutType {
+  STRENGTH
+  RUN
+  CARDIO
+  MOBILITY
+  OTHER
+}
+
+enum FoodCategory {
+  CARB
+  PROTEIN
+  FAT
+  FRUIT
+  VEGETABLE
+  DAIRY
+  OTHER
+}
